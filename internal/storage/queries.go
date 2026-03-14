@@ -395,16 +395,16 @@ func (d *DB) RecordLessonCompletion(date string) error {
 
 // SaveSession persists a session and its associated data.
 func (d *DB) SaveSession(sess metrics.Session, events []metrics.KeystrokeEvent, results []metrics.LessonResult, summary metrics.SessionSummary) error {
-	if err := d.EndSession(sess.ID); err != nil {
-		return fmt.Errorf("end session: %w", err)
-	}
-
-	if err := d.SaveKeystrokes(events); err != nil {
-		return fmt.Errorf("save keystrokes: %w", err)
-	}
-
-	if err := d.SaveLessonResults(results); err != nil {
-		return fmt.Errorf("save results: %w", err)
+	if sess.ID > 0 {
+		if err := d.EndSession(sess.ID); err != nil {
+			return fmt.Errorf("end session: %w", err)
+		}
+		if err := d.SaveKeystrokes(events); err != nil {
+			return fmt.Errorf("save keystrokes: %w", err)
+		}
+		if err := d.SaveLessonResults(results); err != nil {
+			return fmt.Errorf("save results: %w", err)
+		}
 	}
 
 	date := time.Now().Format("2006-01-02")

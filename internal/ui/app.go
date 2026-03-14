@@ -108,10 +108,24 @@ func (a *AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		_, cmd := a.challenge.Update(msg)
 
 		if a.challenge.IsDone() {
-			// Save results
-			sum := a.challenge.Summary()
+			sess, events, results, sum := a.challenge.FinalizedData()
+			lessonID := a.challenge.LessonID()
+
+			// Persist session data and XP
+			if err := a.db.SaveSession(sess, events, results, sum); err == nil {
+				// Unlock the next lesson
+				next := curriculum.Next(lessonID)
+				if next != nil {
+					a.db.UnlockLesson(string(next.ID)) //nolint:errcheck
+				}
+				// Update progress for this lesson
+				a.db.UpdateProgress(string(lessonID), sum.TotalKeystrokes, sum.Duration.Seconds(), true) //nolint:errcheck
+			}
+
 			a.flash = fmt.Sprintf("Lesson complete! +%d XP earned", sum.XPEarned)
 			a.screen = screenMenu
+			// Force menu refresh with updated DB data
+			a.menu = nil
 			a.ensureMenu()
 		}
 		return a, cmd

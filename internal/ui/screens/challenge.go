@@ -61,8 +61,11 @@ type ChallengeScreen struct {
 	waitingSpace bool
 
 	// post-lesson result
-	done    bool
-	summary metrics.SessionSummary
+	done        bool
+	summary     metrics.SessionSummary
+	finalSess   metrics.Session
+	finalEvents []metrics.KeystrokeEvent
+	finalResults []metrics.LessonResult
 }
 
 // NewChallengeScreen creates a fresh challenge screen for a lesson.
@@ -214,7 +217,10 @@ func (s *ChallengeScreen) advance() {
 	if s.stepIdx >= len(s.lesson.Steps) {
 		s.done = true
 		s.recorder.AddXP(metrics.XPLessonComplete)
-		_, _, _, sum := s.recorder.Finalize()
+		sess, events, results, sum := s.recorder.Finalize()
+		s.finalSess = sess
+		s.finalEvents = events
+		s.finalResults = results
 		s.summary = sum
 		return
 	}
@@ -362,6 +368,16 @@ func (s *ChallengeScreen) IsDone() bool {
 // Summary returns the session summary (only valid when done).
 func (s *ChallengeScreen) Summary() metrics.SessionSummary {
 	return s.summary
+}
+
+// FinalizedData returns the full session data for persisting (only valid when done).
+func (s *ChallengeScreen) FinalizedData() (metrics.Session, []metrics.KeystrokeEvent, []metrics.LessonResult, metrics.SessionSummary) {
+	return s.finalSess, s.finalEvents, s.finalResults, s.summary
+}
+
+// LessonID returns the lesson ID that was completed.
+func (s *ChallengeScreen) LessonID() curriculum.LessonID {
+	return s.lesson.ID
 }
 
 func countLines(s string) int {
